@@ -1,0 +1,20 @@
+{
+  "name": "sumologic-lambda",
+  "version": "0.0.1",
+  "description": "",
+  "main": "s3.js",
+  "scripts": {
+    "test": "mocha test/ --reporter dot"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "aws-sdk-mock": "MrHen/aws-sdk-mock#61afab1905538d93f0a2c0784f17940a7604df1f",
+    "mocha": "^3.1.2",
+    "nock": "^9.0.2",
+    "sinon": "^1.17.6"
+  },
+  "dependencies": {
+    "aws-sdk": "^2.7.0"
+  }
+}

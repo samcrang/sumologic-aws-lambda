@@ -1,5 +1,3 @@
-var AWS = require('aws-sdk');
-var s3 = new AWS.S3();
 var https = require('https');
 var zlib = require('zlib'); 
 
@@ -73,12 +71,31 @@ function s3LogsToSumo(bucket, objKey,context) {
     }
 }
 
-exports.handler = function(event, context) {
-    options.agent = new https.Agent(options);
-    event.Records.forEach(function(record) {
-        var bucket = record.s3.bucket.name;
-        var objKey = decodeURIComponent(record.s3.object.key.replace(/\+/g, ' '));
-        console.log('Bucket: '+bucket + ' ObjectKey: ' + objKey);
-        s3LogsToSumo(bucket, objKey, context);
+exports.handler = function(e, context) {
+  var AWS = require('aws-sdk');
+  var s3 = new AWS.S3();
+
+  var options = {
+    'hostname': 'www.example.com',
+    'path': '/hello',
+    'method': 'POST',
+    'protocol': 'https:'
+  };
+
+  var req = https.request(options, function(res) {
+    res.on('data', function() {});
+    res.on('end', function() {
+      context.fail()
     });
+  });
+
+  var s3Stream = s3.getObject({Bucket: e.bucket, Key: e.key}).createReadStream();
+
+  s3Stream.on('data',function(data) {
+    req.write(data+'\n');
+  });
+
+  s3Stream.on('end',function() { req.end(); });
+
+  console.log(s3Stream)
 }
