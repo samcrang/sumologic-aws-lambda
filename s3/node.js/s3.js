@@ -7,10 +7,11 @@ var zlib = require('zlib');
 // See more at: https://service.sumologic.com/help/Default.htm#Collector_Management_API.htm
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-var options = { 'hostname': 'endpoint1.collection.sumologic.com',
-                'path': 'https://endpoint1.collection.sumologic.com/receiver/v1/http/<XXXX>',
-                'method': 'POST'
-            };
+var options = {
+  'hostname': 'endpoint1.collection.sumologic.com',
+  'path': "/receiver/v1/http/<XXXX>",
+  'method': 'POST'
+};
 
 function s3LogsToSumo(bucket, objKey,context, s3) {
     var req = https.request(options, function(res) {
@@ -20,7 +21,6 @@ function s3LogsToSumo(bucket, objKey,context, s3) {
                 res.on('data', function(chunk) { body += chunk; });
                 res.on('end', function() {
                     console.log('Successfully processed HTTPS response');
-                    context.succeed(); 
                 });
             });
     
