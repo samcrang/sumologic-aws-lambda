@@ -1,5 +1,4 @@
 var AWS = require('aws-sdk');
-var s3 = new AWS.S3();
 var https = require('https');
 var zlib = require('zlib'); 
 
@@ -13,8 +12,7 @@ var options = { 'hostname': 'endpoint1.collection.sumologic.com',
                 'method': 'POST'
             };
 
-
-function s3LogsToSumo(bucket, objKey,context) {
+function s3LogsToSumo(bucket, objKey,context, s3) {
     var req = https.request(options, function(res) {
                 var body = '';
                 console.log('Status:', res.statusCode);
@@ -74,11 +72,13 @@ function s3LogsToSumo(bucket, objKey,context) {
 }
 
 exports.handler = function(event, context) {
+    var s3 = new AWS.S3();
+
     options.agent = new https.Agent(options);
     event.Records.forEach(function(record) {
         var bucket = record.s3.bucket.name;
         var objKey = decodeURIComponent(record.s3.object.key.replace(/\+/g, ' '));
         console.log('Bucket: '+bucket + ' ObjectKey: ' + objKey);
-        s3LogsToSumo(bucket, objKey, context);
+        s3LogsToSumo(bucket, objKey, context, s3);
     });
 }
