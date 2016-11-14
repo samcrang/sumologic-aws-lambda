@@ -13,13 +13,13 @@ describe('s3_lambda', function() {
 
       var cb = function(assertions) {
         return {
-          pass: function() {
+          succeeded: function() {
             assertions();
             done();
           },
-          fail: function () {
+          fail: function (err) {
             assertions();
-            done();
+            done(err);
           }
         }
       };
@@ -28,7 +28,7 @@ describe('s3_lambda', function() {
 
       var stub = {bucket: "some-bucket", key: "some-key"};
 
-      s3_lambda.handler(stub, cb(function() {
+      s3_lambda.handler(stub, cb(function(err) {
         http_mock.done();
       }));
     });
