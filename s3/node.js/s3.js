@@ -50,56 +50,40 @@ function s3LogsToSumo(bucket, objKey, context, s3) {
         res.on('end', function() {
             console.log('Successfully processed HTTPS response');
         });
+        res.on('error', function(err) {
+            console.log(err);
+        });
     });
 
-    var finalData = '';
-    var totalBytes = 0;
-    var isCompressed = false;
-    if (objKey.match(/\.gz$/)) {
-        isCompressed = true;
-    }
-
-    var finishFnc = function() {
-        console.log("End of stream");
-        console.log("Final total byte read: "+totalBytes);
-        req.end();
-        context.succeed();
-    };
+    var totalLines = 0;
 
     var s3Stream = s3.getObject({ Bucket: bucket, Key: objKey }).createReadStream();
-    s3Stream.on('error', function() {
-        console.log(
-            'Error getting object "' + objKey + '" from bucket "' + bucket + '".  ' +
-                'Make sure they exist and your bucket is in the same region as this function.');
-        context.fail();
+    s3Stream.on('error', function(error) {
+        context.fail(error);
     });
 
-    req.write('Bucket: '+ bucket + ' ObjectKey: ' + objKey + '\n');
+    req.write('Bucket: ' + bucket + ' ObjectKey: ' + objKey + '\n');
 
-    var lineStream;
-    if (!isCompressed) {
-        s3Stream
-            .pipe(new LineStream())
-            .on('data', function(data) {
-                finalData += data;
-                req.write(anonymize(data) + '\n');
-                totalBytes += data.length;
-            })
-            .on('end', finishFnc);
-    } else {
-        s3Stream
-            .pipe(zlib.createGunzip())
-            .pipe(new LineStream())
-            .on('data', function(data) {
-                totalBytes += data.length;
-                req.write(anonymize(data).toString() + '\n');
-                finalData += data.toString();
-            })
-            .on('end', finishFnc)
-            .on('error', function(error) {
-                context.fail(error);
-            });
+    var isCompressed = !!objKey.match(/\.gz$/);
+    if (isCompressed) {
+        s3Stream = s3Stream.pipe(zlib.createGunzip());
     }
+
+    s3Stream
+        .pipe(new LineStream())
+        .on('data', function(data) {
+            totalLines++;
+            req.write(anonymize(data) + '\n');
+        })
+        .on('end', function() {
+            console.log("End of stream");
+            console.log("Log lines processed: " + totalLines);
+            req.end();
+            context.succeed();
+        })
+        .on('error', function(error) {
+            context.fail(error);
+        });
 }
 
 exports.handler = function(event, context) {
