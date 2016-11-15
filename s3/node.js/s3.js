@@ -2,6 +2,7 @@ var AWS = require('aws-sdk'),
     https = require('https'),
     zlib = require('zlib'),
     byline = require('byline'),
+    LineStream = require('byline').LineStream,
     ip = require('ip');
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -77,26 +78,27 @@ function s3LogsToSumo(bucket, objKey, context, s3) {
 
     var lineStream;
     if (!isCompressed) {
-        lineStream = byline.createStream(s3Stream);
-        lineStream.on('data', function(data) {
-            finalData += data;
-            req.write(anonymize(data) + '\n');
-            totalBytes += data.length;
-        });
-        lineStream.on('end', finishFnc);
+        s3Stream
+            .pipe(new LineStream())
+            .on('data', function(data) {
+                finalData += data;
+                req.write(anonymize(data) + '\n');
+                totalBytes += data.length;
+            })
+            .on('end', finishFnc);
     } else {
-        var gunzip = zlib.createGunzip();
-        lineStream = byline.createStream(s3Stream.pipe(gunzip));
-
-        lineStream.on('data', function(data) {
-            totalBytes += data.length;
-            req.write(anonymize(data).toString() + '\n');
-            finalData += data.toString();
-        });
-        lineStream.on('end', finishFnc);
-        lineStream.on('error', function(error) {
-            context.fail(error);
-        });
+        s3Stream
+            .pipe(zlib.createGunzip())
+            .pipe(new LineStream())
+            .on('data', function(data) {
+                totalBytes += data.length;
+                req.write(anonymize(data).toString() + '\n');
+                finalData += data.toString();
+            })
+            .on('end', finishFnc)
+            .on('error', function(error) {
+                context.fail(error);
+            });
     }
 }
 
