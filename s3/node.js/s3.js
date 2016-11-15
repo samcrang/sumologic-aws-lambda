@@ -27,6 +27,7 @@ function anonymize(line) {
   consumer_ip[3] = "0";
 
   fields[4] = ip.toString(consumer_ip);
+  fields[19] = "-";
 
   return fields.join('\t');
 }
