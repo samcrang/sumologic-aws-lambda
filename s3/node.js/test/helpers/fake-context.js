@@ -8,5 +8,5 @@ module.exports = function(assertions, done) {
       assertions();
       done(err);
     }
-  }
+  };
 };
