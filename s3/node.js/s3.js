@@ -1,6 +1,8 @@
 var AWS = require('aws-sdk'),
     https = require('https'),
-    zlib = require('zlib');
+    zlib = require('zlib'),
+    byline = require('byline'),
+    ip = require('ip');
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Remember to change the hostname and path to match your collection API and specific HTTP-source endpoint
@@ -13,10 +15,26 @@ var options = {
     'method': 'POST'
 };
 
+function anonymize(line) {
+  var s = line.toString();
+
+  if (s[0] === "#")
+    return line;
+
+  var fields = s.split('\t');
+  var consumer_ip = ip.toBuffer(fields[4]);
+  consumer_ip[2] = "0";
+  consumer_ip[3] = "0";
+
+  fields[4] = ip.toString(consumer_ip);
+
+  return fields.join('\t');
+}
+
 function s3LogsToSumo(bucket, objKey, context, s3) {
     var req = https.request(options, function(res) {
         var body = '';
-        console.log('Status:', res.statusCode);
+        console.log('Status: ', res.statusCode);
         res.setEncoding('utf8');
         res.on('data', function(chunk) { body += chunk; });
         res.on('end', function() {
@@ -48,24 +66,26 @@ function s3LogsToSumo(bucket, objKey, context, s3) {
 
     req.write('Bucket: '+ bucket + ' ObjectKey: ' + objKey + '\n');
 
+    var lineStream;
     if (!isCompressed) {
-        s3Stream.on('data', function(data) {
+        lineStream = byline.createStream(s3Stream);
+        lineStream.on('data', function(data) {
             finalData += data;
-            req.write(data + '\n');
+            req.write(anonymize(data) + '\n');
             totalBytes += data.length;
         });
-        s3Stream.on('end', finishFnc);
+        lineStream.on('end', finishFnc);
     } else {
         var gunzip = zlib.createGunzip();
-        s3Stream.pipe(gunzip);
+        lineStream = byline.createStream(s3Stream.pipe(gunzip));
 
-        gunzip.on('data', function(data) {
+        lineStream.on('data', function(data) {
             totalBytes += data.length;
-            req.write(data.toString() + '\n');
+            req.write(anonymize(data).toString() + '\n');
             finalData += data.toString();
         });
-        gunzip.on('end', finishFnc);
-        gunzip.on('error', function(error) {
+        lineStream.on('end', finishFnc);
+        lineStream.on('error', function(error) {
             context.fail(error);
         });
     }
