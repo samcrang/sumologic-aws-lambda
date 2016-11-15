@@ -15,21 +15,29 @@ var options = {
     'method': 'POST'
 };
 
+function anonymizeIp(field) {
+    var consumer_ip = ip.toBuffer(field);
+    consumer_ip[2] = "0";
+    consumer_ip[3] = "0";
+    return ip.toString(consumer_ip);
+}
+
+function anonymizeXForwardedFor(field) {
+    return "-";
+}
+
 function anonymize(line) {
-  var s = line.toString();
+    var s = line.toString();
+    if (s[0] === "#") {
+        return line;
+    }
 
-  if (s[0] === "#")
-    return line;
+    var fields = s.split('\t');
 
-  var fields = s.split('\t');
-  var consumer_ip = ip.toBuffer(fields[4]);
-  consumer_ip[2] = "0";
-  consumer_ip[3] = "0";
+    fields[4] = anonymizeIp(fields[4]);
+    fields[19] = anonymizeXForwardedFor(fields[19]);
 
-  fields[4] = ip.toString(consumer_ip);
-  fields[19] = "-";
-
-  return fields.join('\t');
+    return fields.join('\t');
 }
 
 function s3LogsToSumo(bucket, objKey, context, s3) {
