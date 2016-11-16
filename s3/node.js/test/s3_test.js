@@ -14,7 +14,7 @@ describe("Sumologic S3 CloudFront Lambda", function() {
 
     it("should send compressed logs to sumologic", function(done) {
       var http_mock = nock('https://endpoint1.collection.sumologic.com')
-        .post("/receiver/v1/http/<XXXX>", TEST_DATA.compressed.sumologic_preamble + TEST_DATA.uncompressed.processed_logs)
+        .post("/receiver/v1/http/<XXXX>", TEST_DATA.uncompressed.processed_logs.toString())
         .reply(200);
 
       AWS.mock("S3", "getObject", new Buffer(TEST_DATA.compressed.cloudfront_logs));
@@ -27,7 +27,7 @@ describe("Sumologic S3 CloudFront Lambda", function() {
 
     it("should send logs to sumologic", function(done) {
       var http_mock = nock('https://endpoint1.collection.sumologic.com')
-        .post("/receiver/v1/http/<XXXX>", TEST_DATA.uncompressed.sumologic_preamble + TEST_DATA.uncompressed.processed_logs)
+        .post("/receiver/v1/http/<XXXX>", TEST_DATA.uncompressed.processed_logs.toString())
         .reply(200);
 
       AWS.mock("S3", "getObject", new Buffer(TEST_DATA.uncompressed.cloudfront_logs));

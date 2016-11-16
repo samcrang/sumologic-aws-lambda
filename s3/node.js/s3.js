@@ -29,10 +29,6 @@ function anonymizeXForwardedFor(field) {
 
 function anonymize(line) {
     var s = line.toString();
-    if (s[0] === "#") {
-        return line;
-    }
-
     var fields = s.split('\t');
 
     fields[4] = anonymizeIp(fields[4]);
@@ -62,8 +58,6 @@ function s3LogsToSumo(bucket, objKey, context, s3) {
         context.fail(error);
     });
 
-    req.write('Bucket: ' + bucket + ' ObjectKey: ' + objKey + '\n');
-
     var isCompressed = !!objKey.match(/\.gz$/);
     if (isCompressed) {
         s3Stream = s3Stream.pipe(zlib.createGunzip());
@@ -72,6 +66,9 @@ function s3LogsToSumo(bucket, objKey, context, s3) {
     s3Stream
         .pipe(new LineStream())
         .on('data', function(data) {
+            if (data[0] === 35)
+              return;
+
             totalLines++;
             req.write(anonymize(data) + '\n');
         })
