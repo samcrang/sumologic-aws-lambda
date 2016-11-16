@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "aws-sdk": "^2.7.0",
-    "byline": "^5.0.0"
+    "byline": "^5.0.0",
+    "ip": "^1.1.4"
   }
 }
